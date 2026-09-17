@@ -11,7 +11,7 @@
 本页面是纯静态网页，**无需安装任何依赖、无需构建**。只需本机装有 Python 3（终端执行 `python -V` 能输出版本号即可）。
 
 ```bash
-cd D:\VibeCoding\Vibe-lab
+cd Vibe-lab
 python -m http.server 8777
 ```
 
