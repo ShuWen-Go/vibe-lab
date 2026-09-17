@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <!-- 让页面在手机等小屏幕上也能正常缩放显示 -->
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>我的第一个 VibeCoding 页面</title>
+  <style>
+    /* 页面整体样式：居中布局与基础配色 */
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: "Microsoft YaHei", "PingFang SC", sans-serif;
+      background: linear-gradient(160deg, #e8f4f8 0%, #f5f0e8 100%);
+      color: #1a2b3c;
+      padding: 24px;
+    }
+
+    /* 主内容区域 */
+    .container {
+      text-align: center;
+      max-width: 420px;
+    }
+
+    h1 {
+      font-size: 1.75rem;
+      font-weight: 700;
+      margin-bottom: 16px;
+      letter-spacing: 0.02em;
+    }
+
+    /* 说明文字样式 */
+    .desc {
+      font-size: 1rem;
+      line-height: 1.7;
+      color: #4a5d6e;
+      margin-bottom: 28px;
+    }
+
+    /* 当前计数数字的展示 */
+    .count {
+      font-size: 3rem;
+      font-weight: 700;
+      color: #2c6e8f;
+      margin-bottom: 24px;
+    }
+
+    /* 按钮样式 */
+    button {
+      font-size: 1rem;
+      font-family: inherit;
+      padding: 12px 28px;
+      border: none;
+      border-radius: 8px;
+      background: #2c6e8f;
+      color: #fff;
+      cursor: pointer;
+      transition: background 0.2s ease, transform 0.15s ease;
+    }
+
+    button:hover {
+      background: #235a75;
+    }
+
+    button:active {
+      transform: scale(0.97);
+    }
+  </style>
+</head>
+<body>
+  <!-- 页面主体内容 -->
+  <div class="container">
+    <!-- 页面标题 -->
+    <h1>我的第一个 VibeCoding 页面</h1>
+
+    <!-- 说明文字：告诉用户如何操作 -->
+    <p class="desc">
+      这是一个纯静态单页示例，不依赖任何外部库。
+      点击下方按钮，数字会加 1。
+    </p>
+
+    <!-- 显示当前计数值，初始为 0 -->
+    <div class="count" id="count">0</div>
+
+    <!-- 点击后触发数字加一的按钮 -->
+    <button type="button" id="btn">点我加一</button>
+  </div>
+
+  <script>
+    // 获取数字显示区域和按钮元素
+    const countEl = document.getElementById("count");
+    const btn = document.getElementById("btn");
+
+    // 用变量保存当前计数值
+    let count = 0;
+
+    // 给按钮绑定点击事件：每次点击让数字加 1 并更新页面显示
+    btn.addEventListener("click", function () {
+      count += 1;
+      countEl.textContent = count;
+    });
+  </script>
+</body>
+</html>
