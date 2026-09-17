@@ -25,3 +25,4 @@ python -m http.server 8777
 ## 下一步做什么
 
 打造个人工作台
+从当前工作接入AI能力，引申working场景
