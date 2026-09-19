@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <!-- 让页面在手机等小屏幕上也能正常缩放显示 -->
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>我的第一个 VibeCoding 页面</title>
+  <title>树纹的 VibeCoding 页面</title>
   <style>
     /* 页面整体样式：居中布局与基础配色 */
     * {
@@ -48,8 +48,8 @@
     /* 当前计数数字的展示 */
     .count {
       font-size: 3rem;
-      font-weight: 700;
-      color: #2c6e8f;
+      font-weight: 900;
+      color: #ed6538;
       margin-bottom: 24px;
     }
 
@@ -79,7 +79,7 @@
   <!-- 页面主体内容 -->
   <div class="container">
     <!-- 页面标题 -->
-    <h1>我的第一个 VibeCoding 页面</h1>
+    <h1>树纹的 VibeCoding 页面</h1>
 
     <!-- 说明文字：告诉用户如何操作 -->
     <p class="desc">
@@ -87,11 +87,15 @@
       点击下方按钮，数字会加 1。
     </p>
 
+    <p class="desc">
+      这是树纹的测试页面。
+    </p>
+
     <!-- 显示当前计数值，初始为 0 -->
-    <div class="count" id="count">0</div>
+    <div class="count" id="count">12</div>
 
     <!-- 点击后触发数字加一的按钮 -->
-    <button type="button" id="btn">点我加一</button>
+    <button type="button" id="btn">幸运值加一</button>
   </div>
 
   <script>
@@ -100,7 +104,7 @@
     const btn = document.getElementById("btn");
 
     // 用变量保存当前计数值
-    let count = 0;
+    let count = 12;
 
     // 给按钮绑定点击事件：每次点击让数字加 1 并更新页面显示
     btn.addEventListener("click", function () {
