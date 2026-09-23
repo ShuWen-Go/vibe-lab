@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Prompt 对比工具</title>
+
+<style>
+  /* ===== 布局：整页背景、居中容器、输入区与结果区 ===== */
+
+  * {
+    box-sizing: border-box;
+  }
+
+  body {
+    margin: 0;
+    font-family: "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+    background: #f4f6f8;
+    color: #1f2933;
+  }
+
+  .page {
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 32px 20px 48px;
+  }
+
+  h1 {
+    margin: 0 0 8px;
+    font-size: 24px;
+  }
+
+  .subtitle {
+    margin: 0 0 24px;
+    color: #52606d;
+    font-size: 14px;
+  }
+
+  /* 上方三块输入：窄屏上下叠放，宽屏三列并排 */
+
+  .inputs {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 16px;
+    margin-bottom: 20px;
+  }
+
+  @media (min-width: 800px) {
+    .inputs {
+      grid-template-columns: 1fr 1fr 1fr;
+    }
+  }
+
+  .field {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .field label {
+    font-weight: 600;
+    font-size: 14px;
+  }
+
+  textarea {
+    width: 100%;
+    min-height: 160px;
+    padding: 12px;
+    border: 1px solid #cbd2d9;
+    border-radius: 8px;
+    background: #fff;
+    font-size: 14px;
+    line-height: 1.6;
+    resize: vertical;
+  }
+
+  /* 按钮区：单独一行，靠左 */
+
+  .actions {
+    margin-bottom: 24px;
+  }
+
+  /* ===== 按钮外观（点击逻辑在 <script> 里） ===== */
+
+  #run-btn {
+    padding: 10px 20px;
+    border: none;
+    border-radius: 8px;
+    background: #2563eb;
+    color: #fff;
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+  }
+
+  #run-btn:hover {
+    background: #1d4ed8;
+  }
+
+  /* 下方两张结果卡片并排 */
+
+  .results {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+  }
+
+  .card {
+    background: #fff;
+    border: 1px solid #d9e2ec;
+    border-radius: 10px;
+    padding: 16px 18px;
+    min-height: 180px;
+  }
+
+  .card h2 {
+    margin: 0 0 12px;
+    font-size: 16px;
+  }
+
+  /* A / B 标题用不同颜色，一眼能分清哪张是哪张 */
+  .card-a h2 {
+    color: #2563eb;
+  }
+
+  .card-b h2 {
+    color: #d97706;
+  }
+
+  .output {
+    margin: 0;
+    white-space: pre-wrap;
+    color: #3e4c59;
+    font-size: 14px;
+    line-height: 1.7;
+  }
+</style>
+</head>
+
+<body>
+  <div class="page">
+    <h1>Prompt 对比工具</h1>
+    <p class="subtitle">先对比两套 System Prompt 对同一问题的影响。当前尚未接入 API，点击按钮只会写入占位文字。</p>
+
+    <!-- 上方三个输入框 -->
+    <section class="inputs">
+      <div class="field">
+        <label for="system-a">System Prompt A</label>
+         <textarea id="system-a">【角色】
+你是信息提取器。从用户给出的文字里提取信息，只输出一个 JSON 对象。
+
+【只输出 JSON】
+- 不要任何开场白、说明文字或结尾总结
+- 不要用小标题、加粗、列表符号等 markdown 排版
+- 不要用代码块标记把 JSON 包起来
+- 输出的第一个字符必须是 {，最后一个字符必须是 }
+
+【字段规范】必须包含且只包含这 4 个字段：
+- summary：字符串。用一句话概括全文主旨，不超过 60 字。
+- points：字符串数组。3 到 6 条关键信息，每条不超过 30 字。
+- quotes：字符串数组。从原文【逐字摘录】最有代表性的话，不要改写、不要换词、不要加标点；找不到合适的就给空数组。
+- todos：字符串数组。原文提到的下一步要做的事；没有就给空数组。
+
+【书写要求】
+- 键名和字符串值都用半角双引号
+- 字符串内部不要换行；要分条就拆成数组元素</textarea>
+
+      </div>
+
+      <div class="field">
+        <label for="system-b">System Prompt B</label>
+        <textarea id="system-b">【角色】
+你是信息提取器。从用户给出的文字里提取信息，只输出一个 JSON 对象。
+
+【只输出 JSON】
+- 不要任何开场白、说明文字或结尾总结
+- 不要用小标题、加粗、列表符号等 markdown 排版
+- 不要用代码块标记把 JSON 包起来
+- 输出的第一个字符必须是 {，最后一个字符必须是 }
+
+【字段规范】必须包含且只包含这 4 个字段：
+- summary：字符串。用一句话概括全文主旨，不超过 60 字。
+- points：字符串数组。3 到 6 条关键信息，每条不超过 30 字。
+- quotes：字符串数组。从原文【逐字摘录】最有代表性的话，不要改写、不要换词、不要加标点；找不到合适的就给空数组。
+- todos：字符串数组。原文提到的下一步要做的事；没有就给空数组。
+
+【书写要求】
+- 键名和字符串值都用半角双引号
+- 字符串内部不要换行；要分条就拆成数组元素
+
+【示例｜只示范格式，素材与真实素材无关】
+示例输入：我家阳台的绿萝最近叶子发黄，浇水也没什么用。
+示例输出：{"summary":"绿萝叶片发黄疑因浇水不当","points":["先查土壤湿度再决定是否补水","检查光照与排水孔","考虑是否缺肥"],"quotes":[],"todos":["三天后复查新叶颜色"]}</textarea>
+
+      </div>
+
+      <div class="field">
+        <label for="user-q">用户问题</label>
+        <textarea id="user-q">页面一切正常，控制台却有404。</textarea>
+      </div>
+    </section>
+
+    <!-- 运行对比按钮 -->
+    <div class="actions">
+      <button id="run-btn" type="button">开始对比 A / B</button>
+    </div>
+
+    <!-- 下方两个并排结果卡片 -->
+    <section class="results">
+      <article class="card card-a">
+        <h2>A 的输出</h2>
+        <p id="output-a" class="output">尚未运行。点击「运行对比」后，这里会显示占位结果。</p>
+      </article>
+
+      <article class="card card-b">
+        <h2>B 的输出</h2>
+        <p id="output-b" class="output">尚未运行。点击「运行对比」后，这里会显示占位结果。</p>
+      </article>
+    </section>
+  </div>
+
+<script>
+  // ===== 点击行为：给按钮绑定事件，把占位文字写进两张结果卡片 =====
+
+  const runBtn = document.getElementById("run-btn");
+  const outputA = document.getElementById("output-a");
+  const outputB = document.getElementById("output-b");
+
+  runBtn.addEventListener("click", function () {
+    // 暂时不读三个输入框，也不发 API，只更新结果区
+    outputA.textContent = "（占位）这里以后会显示 System Prompt A 的模型输出。";
+    outputB.textContent = "（占位）这里以后会显示 System Prompt B 的模型输出。";
+  });
+</script>
+</body>
+</html>
