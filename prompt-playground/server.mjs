@@ -112,7 +112,17 @@ function readBody(req) {
 // 托管当前目录的静态文件；访问 / 时默认给 index.html
 function serveStatic(req, res) {
   // 只取路径部分，丢掉 ?query
-  const urlPath = decodeURIComponent((req.url ?? '/').split('?')[0]);
+  // 🚨 畸形百分号编码（例如直接访问 /%）会让 decodeURIComponent 抛 URIError。
+  // 而它是「同步」执行的 → 异常会冒泡出 createServer 的回调 → 整个 Node 进程直接退出。
+  // 也就是说：一个乱敲的地址就能让后端崩掉。必须兜住，返回 400 而不是让进程死。
+  let urlPath;
+  try {
+    urlPath = decodeURIComponent((req.url ?? '/').split('?')[0]);
+  } catch {
+    console.error('畸形 URL 编码，已拒绝：', req.url);
+    sendRaw(req, res, 400, 'text/plain; charset=utf-8', 'Bad Request');
+    return;
+  }
   // 访问根路径时改成 index.html，这样打开 http://localhost:3000 就能看到页面
   const relative = urlPath === '/' ? '/index.html' : urlPath;
   // 用 URL 拼出目标文件，避免自己手写斜杠差异（Windows / Unix）
@@ -257,8 +267,12 @@ const server = http.createServer((req, res) => {
   sendJson(req, res, 400, { error: '不支持的请求' });
 });
 
-// 监听 3000；第二个参数 127.0.0.1 表示只本机可访问，密钥不会暴露到局域网
-server.listen(3000, '127.0.0.1', () => {
-  console.log('本地后端已启动：http://localhost:3000');
+// 监听端口抽成常量：日志文案跟着它走。
+// 否则将来改了端口、日志还在报旧端口 —— 又一处「看起来对了 ≠ 实际对了」。
+const PORT = 3000;
+
+// 第二个参数 127.0.0.1 表示只本机可访问，密钥不会暴露到局域网
+server.listen(PORT, '127.0.0.1', () => {
+  console.log(`本地后端已启动：http://localhost:${PORT}`);
   console.log('打开上述地址即可看到当前目录的 index.html；POST /api/chat 会转发到 DeepSeek');
 });
