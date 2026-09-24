@@ -74,6 +74,35 @@
     resize: vertical;
   }
 
+  /* 预设下拉：输入区上方一行，靠左 */
+  .preset-bar {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin: 0 0 14px;
+  }
+
+  .preset-bar label {
+    font-size: 14px;
+    font-weight: 600;
+  }
+
+  #preset {
+    padding: 6px 10px;
+    border: 1px solid #cbd2d9;
+    border-radius: 8px;
+    background: #fff;
+    font-size: 14px;
+    color: #1f2933;
+  }
+
+  /* 结果卡片里的元信息行：耗时与 token */
+  .meta {
+    margin: 0 0 10px;
+    font-size: 12px;
+    color: #829ab1;
+  }
+
   /* 按钮区：单独一行，靠左 */
 
   .actions {
@@ -95,6 +124,12 @@
 
   #run-btn:hover {
     background: #1d4ed8;
+  }
+
+  /* 请求进行中：按钮变灰、鼠标变"禁止"，防止连点 */
+  #run-btn:disabled {
+    background: #9aa5b1;
+    cursor: not-allowed;
   }
 
   /* 下方两张结果卡片并排 */
@@ -140,10 +175,22 @@
 <body>
   <div class="page">
     <h1>Prompt 对比工具</h1>
-    <p class="subtitle">先对比两套 System Prompt 对同一问题的影响。当前尚未接入 API，点击按钮只会写入占位文字。</p>
+    <p class="subtitle">先对比两套 System Prompt 对同一问题的影响。请求发往本机后端，API Key 只保存在服务端。</p>
+
+    <!-- 预设下拉：省去每次手打 -->
+    <div class="preset-bar">
+      <label for="preset">常用预设</label>
+      <select id="preset">
+        <option value="">— 选择预设 —</option>
+        <option value="extract">结构化提取：规则版 / 规则+示例</option>
+        <option value="summary">同一素材：做摘要 / 提待办</option>
+        <option value="tone">同一问题：极简作答 / 详细解释</option>
+      </select>
+    </div>
 
     <!-- 上方三个输入框 -->
     <section class="inputs">
+
       <div class="field">
         <label for="system-a">System Prompt A</label>
          <textarea id="system-a">【角色】
@@ -196,7 +243,8 @@
 
       <div class="field">
         <label for="user-q">用户问题</label>
-        <textarea id="user-q">页面一切正常，控制台却有404。</textarea>
+        <textarea id="user-q">AI PM 的流程可概括为八步闭环：①定义业务问题与价值假设 → ②评估 AI 可行性（数据、选型、幻觉与合规风险）→ ③设计价值度量（指标口径、基线、目标与背书）→ ④方案与体验设计（人机分工、失败兜底）→ ⑤准备数据与评测集 → ⑥协作开发、灰度上线 → ⑦验证效果、归因并沉淀证据 → ⑧证据驱动迭代与场景复制。
+          其中②③⑤⑦为 AI 特有环节，正是与传统 PM 的分水岭：先量基线再谈效果，先定义口径再谈指标。核心心法是用证据管理不确定性 —— 每一步产出都要能回答 "口径是什么、基线从哪来、谁来背书"。这条链路与你的价值一页纸、价值证据库一一对应，案例拆解即是在他人项目上走完此闭环，只沉淀口径与证据。。</textarea>
       </div>
     </section>
 
@@ -209,28 +257,110 @@
     <section class="results">
       <article class="card card-a">
         <h2>A 的输出</h2>
+        <p class="meta" id="meta-a"></p>
         <p id="output-a" class="output">尚未运行。点击「运行对比」后，这里会显示占位结果。</p>
       </article>
 
       <article class="card card-b">
         <h2>B 的输出</h2>
+        <p class="meta" id="meta-b"></p>
         <p id="output-b" class="output">尚未运行。点击「运行对比」后，这里会显示占位结果。</p>
       </article>
     </section>
   </div>
 
-<script>
-  // ===== 点击行为：给按钮绑定事件，把占位文字写进两张结果卡片 =====
+  <script>
+    // ===== 点击行为：读三个输入框 → 并发请求自己的后端 → 写回两张卡片 =====
 
-  const runBtn = document.getElementById("run-btn");
-  const outputA = document.getElementById("output-a");
-  const outputB = document.getElementById("output-b");
+    const runBtn = document.getElementById("run-btn");
+    const outputA = document.getElementById("output-a");
+    const outputB = document.getElementById("output-b");
+    const metaA = document.getElementById("meta-a");
+    const metaB = document.getElementById("meta-b");
 
-  runBtn.addEventListener("click", function () {
-    // 暂时不读三个输入框，也不发 API，只更新结果区
-    outputA.textContent = "（占位）这里以后会显示 System Prompt A 的模型输出。";
-    outputB.textContent = "（占位）这里以后会显示 System Prompt B 的模型输出。";
-  });
-</script>
+    // 常用预设：选中后把两套 system 灌回输入框。
+    // 全部写成「单行字符串」—— 多行写法容易在行首带上缩进空格，那些空格会跟着进 prompt（D5 踩过的坑）。
+    const PRESETS = {
+      extract: {
+        a: '你是信息提取器。从用户给出的文字里提取信息，只输出一个 JSON 对象，不要任何开场白、解释文字或 markdown 排版。必须包含且只包含这 4 个字段：summary（字符串，一句话主旨，不超过 60 字）、points（字符串数组，3 到 6 条关键信息）、quotes（字符串数组，从原文逐字摘录最有代表性的话，不改写不加字）、todos（字符串数组，原文提到的下一步要做的事，没有就给空数组）。',
+        b: '你是信息提取器。从用户给出的文字里提取信息，只输出一个 JSON 对象，不要任何开场白、解释文字或 markdown 排版。必须包含且只包含这 4 个字段：summary（字符串，一句话主旨，不超过 60 字）、points（字符串数组，3 到 6 条关键信息）、quotes（字符串数组，从原文逐字摘录最有代表性的话，不改写不加字）、todos（字符串数组，原文提到的下一步要做的事，没有就给空数组）。示例（只示范格式，素材与真实素材无关）：输入「我家阳台的绿萝最近叶子发黄，浇水也没什么用。」输出 {"summary":"绿萝叶片发黄疑因浇水不当","points":["先查土壤湿度再决定是否补水"],"quotes":[],"todos":["三天后复查新叶颜色"]}',
+      },
+      summary: {
+        a: '你是会议记录员。用不超过三句话概括用户给出的内容，要压缩、要准确，不要遗漏关键数字和结论。',
+        b: '你是项目经理。从用户给出的内容里提取待办事项，输出一个列表，每条都写清「做什么 + 谁负责 + 什么时候」；原文没写的信息就标「未指定」，不要自己编。',
+      },
+      tone: {
+        a: '回答要极简：只给一句结论，不超过 30 字，不要解释、不要举例。',
+        b: '回答要详尽：先给一句结论，再从原理和例子两个角度解释，最后补一条使用建议。',
+      },
+    };
+
+    // 把一个 system 提示词和用户素材拼成 DeepSeek 要的 messages 数组
+    function buildMessages(systemContent, userContent) {
+      return [
+        { role: "system", content: systemContent },
+        { role: "user", content: userContent },
+      ];
+    }
+
+    // 请求自己的后端（注意：不是直连模型厂商的接口地址，Key 只活在服务端）
+    async function ask(messages) {
+      const response = await fetch("/api/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ messages: messages }),
+      });
+      const data = await response.json();
+      // 后端出错时回 { error: "..." }，这里统一转成异常，交给调用处兜底
+      if (!response.ok) throw new Error(data.error || "请求失败");
+      return data;
+    }
+
+    // 单个结果的完整流程：先显示状态 → 请求 → 成功填内容 + 元信息 / 失败填友好提示
+    async function runOne(target, metaTarget, systemContent, userContent) {
+      target.textContent = "生成中…";
+      metaTarget.textContent = "";
+      try {
+        const data = await ask(buildMessages(systemContent, userContent));
+        target.textContent = data.content;
+        // 埋点：这次调用花了多久、烧了多少 token —— 由后端透传回来
+        metaTarget.textContent = "耗时 " + data.elapsed + " ms · " + data.totalTokens + " tokens";
+      } catch (error) {
+        // 页面只给友好提示；完整错误留在控制台，避免把服务端细节暴露给访客
+        target.textContent = "出错了：请确认后端已启动（node server.mjs），并查看浏览器控制台。";
+        console.error(error);
+      }
+    }
+
+    // 预设下拉：切换时把两套 system 灌回输入框
+    // 用 .value 而不是 .innerHTML —— textarea 显示的是「值」，用 innerHTML 会把内容当 HTML 解析
+    document.getElementById("preset").addEventListener("change", function () {
+      const preset = PRESETS[this.value];
+      if (!preset) return; // 选回「— 选择预设 —」时不覆盖手改的内容
+      document.getElementById("system-a").value = preset.a;
+      document.getElementById("system-b").value = preset.b;
+    });
+
+    runBtn.addEventListener("click", async function () {
+      const systemA = document.getElementById("system-a").value;
+      const systemB = document.getElementById("system-b").value;
+      const userContent = document.getElementById("user-q").value;
+
+      runBtn.disabled = true;
+      runBtn.textContent = "生成中…";
+
+      try {
+        // 两次请求同时发出：总耗时取决于较慢的那一个，而不是两者相加
+        await Promise.all([
+          runOne(outputA, metaA, systemA, userContent),
+          runOne(outputB, metaB, systemB, userContent),
+        ]);
+      } finally {
+        runBtn.disabled = false;
+        runBtn.textContent = "开始对比 A / B";
+      }
+    });
+  </script>
+
 </body>
 </html>
